@@ -1,171 +1,200 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-title: [Kazi Connect] API
-version: 1.0.0
-description: Week 4 Lab OpenAPI specification contract for job and application tracking
+  title: SettleIn API
+  version: 1.0.1
+  description: Job listings and service applications for SettleIn students.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
 paths:
-     #---ENDPOINT 1---
-   /api/jobs:
-     get:
-       summary: :Returns all currently active job listings
-       parameters:
-         - name: status
-           in: query
-           required: true
-           schema:
-             type: string
-             example: active
-       response:
-       '200':
-         description: A list of active jobs retrieved succesfully.
-         content:
-           application/json:
-             schema:
-               type: array
-               items:
-                 $ref: '#/components/schemas/Job'
 
-     #---ENDPOINT 2---
-   /api/jobs/search:
-     get:
-       summary: filters active listings by location and category near dtudent accomodation
-       parameters:
-         - name: county
-           in: query
-           required: true
-           schema:
-             type: string
-             example: Nairobi
-         - name: category
-           in: query
-           required: true
-           schema:
-             type: string
-             example: accomodation
-         - name: statuts
-           in: query
-           required: true
-           schema:
-             type: string
-             example: active
-       response:
-       '200':
-         description: A filtered list of nearby job listings matching criteria.
-         content:
-           application/json:
-             schema:
-               type: array
-               items:
-                 $ref: '#/components/schemas/Job'   
+  #---ENDPOINT 1---
+  /api/jobs:
+    get:
+      summary: Returns all currently active job listings
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            example: active
+      responses:
+        '200':
+          description: A list of active jobs retrieved successfully. Empty list if none match.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+        '400':
+          description: The required status query parameter is missing.
 
-     #---ENDPOINT 3---
-   /api/jobs/{jobId}:
-     get:
-       summary:Returns a single job full details, including status and pay range
-       parameters:
-         - name: jobId
-           in: path
-           required: true
-           description: The unique identifier of the job
-           schema:
-             type: string
-             example: "job_12345"
-       response:
-       '200':
-         description: Job details retrieved successfully.
-         content:
-           application/json:
-             schema:
-                 $ref: '#/components/schemas/Job'  
+  #---ENDPOINT 2---
+  /api/jobs/search:
+    get:
+      summary: Filters active listings by location and category near student accommodation
+      parameters:
+        - name: county
+          in: query
+          required: true
+          schema:
+            type: string
+            example: Nairobi
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+            example: accommodation
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            example: active
+      responses:
+        '200':
+          description: A filtered list of nearby job listings matching the criteria. Empty list if none match.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+        '400':
+          description: One or more of the required query parameters (county, category, status) is missing.
+
+  #---ENDPOINT 3---
+  /api/jobs/{jobId}:
+    get:
+      summary: Returns a single job's full details, including status and pay range
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: The unique identifier of the job
+          schema:
+            type: string
+            example: job_12345
+      responses:
+        '200':
+          description: Job details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
         '404':
-           description: Job ID not found.
+          description: Job ID not found.
+
+  #---ENDPOINT 4---
+  /api/applications/{applicationId}/status:
+    get:
+      summary: Returns the current status of an application request
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: app_1001
+      responses:
+        '200':
+          description: Successful response containing the application status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationStatus'
+        '404':
+          description: Application ID not found.
+
+  #---ENDPOINT 5---
+  /api/applications/{applicationId}/subscribe:
+    get:
+      summary: Opens a WebSocket that pushes status changes in real time
+      description: >
+        This is a WebSocket endpoint, so connect with a WebSocket client (ws://), not a normal
+        HTTP request. On connect the server sends the current status once, then sends a new
+        message every time the status changes. Every message is a JSON ApplicationStatus object.
+        Swagger UI cannot open WebSockets, so Try it out will not work for this endpoint.
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: app_1001
+      responses:
+        '101':
+          description: Switching Protocols. The real time stream subscription is established.
+        '404':
+          description: Application ID not found. The connection is refused.
+        '426':
+          description: Upgrade Required. The request was plain HTTP, not a WebSocket upgrade.
+
+  #---ENDPOINT 6---
+  /api/applications:
+    post:
+      summary: Creates a new application/service request from a SettleIn student
+      responses:
+        '200':
+          description: Application successfully created.
+
+  #---ENDPOINT 7 and ENDPOINT 8 (same path, different methods)---
+  /api/applications/{applicationId}:
+    put:
+      summary: Updates an existing pending application (e.g. edit details)
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Application successfully updated.
+    delete:
+      summary: Cancels a pending application request
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Application successfully cancelled.
 
 components:
   schemas:
     Job:
       type: object
       properties:
-         id:
-           type: string
-         title:
-           type: string
-         category:
-           type: string
-         county:
-           type: string
-         status:
-           type: string
-          payRange:
-           type: object
-           properties:
-
-           
-             min:
-               type: number
-             max:
-               type: number
-
-  #---ENDPOINT 4---
-   /api/applications/{applicatrionId}/status:
-     get:
-       summary: Returns the current status of an application requeest.
-       parameters:
-         - name: applicationId
-           in: path
-           required: true
-           schema:
-             type: string
-       response:
-       '200':
-         description: Succesfull response containing application status.
-
-  #---ENDPOINT 5---
-   /api/applications/{applicatrionId}/subscribe:
-     get:
-       summary: Opens a WebSocket that pushes status changes in real time.
-       parameters:
-         - name: applicationId
-           in: path
-           required: true
-           schema:
-             type: string
-       response:
-       '200':
-         description: Succesfully established real-time stream subscription.
-
-#---ENDPOINT 6---
-   /api/applications:
-     get:
-       summary: Creates a new application/service request from a SettleIn student
-       response:
-       '200':
-         description: Application succesfully created.
-
-#---ENDPOINT 7---
-   /api/applications/{applicatrionId}:
-     put:
-       summary: Updates an existing pending application (e.g. edit details)
-       parameters:
-         - name: applicationId
-           in: path
-           required: true
-           schema:
-             type: string
-       response:
-       '200':
-         description: Application succeessfully updated.
-
-     #---ENDPOINT 8---
-   /api/applications/{applicatrionId} (DELETE):
-     delete:
-       summary: Cancels a pending application request
-       parameters:
-         - name: applicationId
-           in: path
-           required: true
-           schema:
-             type: string
-       response:
-       '200':
-         description: Application successfully canceled.
-        
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        county:
+          type: string
+        status:
+          type: string
+        payRange:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+    ApplicationStatus:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          example: app_1001
+        status:
+          type: string
+          example: pending

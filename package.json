@@ -1,0 +1,20 @@
+{
+  "name": "settlein-api",
+  "version": "1.0.1",
+  "description": "SettleIn API, Week 5: GET endpoints implemented and verified against openapi.yaml",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "verify": "node scripts/verify-contract.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.22.0",
+    "yaml": "^2.9.1"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}

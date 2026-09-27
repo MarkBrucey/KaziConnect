@@ -1,105 +1,68 @@
- # Kazi Connect
+# SettleIn API, Week 5: GET endpoints
 
-**Kenya's fastest way to find casual work, nearby.**
+Every GET endpoint in `openapi.yaml` is implemented in Node.js with Express and verified against the contract field by field.
 
-A web platform that connects people who need short-term skilled work done — plumbing, cleaning, electrical, and more — with verified local workers ("fundis"), matched by location. Built to replace the informal, unreliable process of finding casual labour through WhatsApp groups and word of mouth.
+## Run it
 
+On Windows, the shortcut is to double click **start_lab.bat**. It installs the packages, runs the contract check, starts the server and opens Swagger UI for you.
 
+Or by hand. You need Node.js 18 or newer.
 
-## Problem Statement
-
-### General Project Description
-In Kenya, finding a casual worker — a plumber, cleaner, electrician, or similar — is still largely done through WhatsApp groups, personal referrals, and informal agencies. This process is slow, unreliable, and lacks any way to verify a worker's skill, availability, or trustworthiness before hiring them. On the other side, skilled casual workers struggle to find consistent work without paying agency fees or relying entirely on word-of-mouth referrals.
-
-### Solution Provided
-Kazi Connect is a two-sided web platform connecting employers who need short-term work done with verified workers nearby. Employers post jobs with a category, location, and pay rate. Workers browse and filter jobs by trade, and apply directly through the platform — no agency, no middleman.
-
-### Value Addition
-- **No placement fees** — unlike traditional agencies, FundiLink doesn't take a cut from either side.
-- **Location-based matching** — jobs and workers are matched by area, reducing wasted travel time across the city.
-- **Verified profiles** — a registration and login system distinguishes between worker and employer accounts, laying the foundation for future verification/rating features.
-- **Transparency** — pay rates (in KES) and job details are shown upfront, with no hidden costs.
-- **Speed** — the entire flow from browsing to applying takes under a minute, versus days of back-and-forth over WhatsApp.
-
-
-
-## Tech Stack
-
-- **HTML5** — page structure across Home, Login/Register, Jobs, and Dashboard
-- **CSS3** — custom design system (flat color palette, no frameworks), fully responsive
-- **JavaScript (Vanilla)** — authentication logic, role-based routing, dynamic navigation
-- **React** (via CDN + Babel standalone, no build step) — powers the Browse Jobs page: job listing, category filtering, and the apply flow are all built as React components with `useState`/`useEffect`
-- **JSON Server** — mock REST API for users, jobs, and applications, backed by `db.json`
-- **http-server** — lightweight static file server for local development
-
-
-## Features
-
-- **Two-sided registration** — sign up as either a Worker or an Employer
-- **Role-based redirects** — workers land on the Jobs page after login, employers land on their Dashboard
-- **Browse & filter jobs** — filter open gigs by category (Plumbing, Electrical, Cleaning, Painting, Moving, Gardening, Driving, Cooking, Security)
-- **Apply to jobs** — one-click apply, persisted to a mock backend
-- **Employer dashboard** — landing page for employers to (eventually) manage job postings
-- **Fully responsive** — works down to mobile screen widths
-
-
-
-## How to Run This Project
-
-### Prerequisites
-- [Node.js](https://nodejs.org) installed (includes `npm`)
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/Wahome-M/Casual-Worker-Sourcing-App.git
-cd Casual-Worker-Sourcing-App
-
-
-### 2. Start the mock API server
-In one terminal, run:
-```bash
-npx json-server --watch src/db.json --port 3001
 ```
-This serves `/users`, `/jobs`, and `/applications` at `http://localhost:3001`.
-
-### 3. Start the static file server
-In a **second** terminal (from the project root):
-```bash
-npx http-server . -p 8080
+npm install
+npm start
 ```
 
-### 4. Open the app
-Visit:http://localhost:8080/src/index.html
-## Project Structure
-Casual-Worker-Sourcing-App/
-├── Images/              # Static images (worker photos, hero images)
-├── src/
-│   ├── index.html       # Homepage
-│   ├── index.css
-│   ├── login.html       # Login / Register
-│   ├── login.css
-│   ├── login.js
-│   ├── jobs.html        # Browse Jobs (React-powered listing)
-│   ├── jobs.css
-│   ├── jobs.jsx
-│   ├── dashboard.html   # Employer dashboard
-│   ├── dashboard.css
-│   ├── dashboard.js
-│   ├── main.js          # Shared auth guard + nav logic
-│   └── db.json          # Mock database (users, jobs, applications)
-└── README.md
+Then open **http://localhost:3000/docs** for Swagger UI. Pick an endpoint, click **Try it out**, then **Execute**.
 
+## Verify it against the contract
 
-## Team
+```
+npm run verify
+```
 
-Built by **Group 8** ·  Strathmore University,Nairobi, Kenya · 2026
+This starts the server, calls every GET endpoint (success, not found and missing parameter cases), and checks each real response against `openapi.yaml`: exact field names, types, no extra fields, no missing fields, and the status code. The results are written to `VERIFICATION.md`. Screenshots of Try it out in Swagger UI are in the `evidence` folder.
 
+## Endpoints built this week
 
+| # | Request | Success | Other cases |
+|---|---|---|---|
+| 1 | `GET /api/jobs?status=active` | 200, list of Job | 400 if status is missing |
+| 2 | `GET /api/jobs/search?county=Nairobi&category=accommodation&status=active` | 200, list of Job | 400 if any parameter is missing |
+| 3 | `GET /api/jobs/{jobId}` | 200, one Job | 404 if the job does not exist |
+| 4 | `GET /api/applications/{applicationId}/status` | 200, ApplicationStatus | 404 if the application does not exist |
+| 5 | WebSocket `/api/applications/{applicationId}/subscribe` | 101, then status messages | 404 if unknown, 426 for plain HTTP |
 
-## Future Improvements
-- Worker/employer rating and review system
-- Real image upload for worker profile photos
-- "Post a Job" form for employers
-- "My Applications" tracker for workers
-- Real backend + database (currently uses JSON Server as a mock API for development)
-## Screenshots
+Endpoints 6, 7 and 8 (POST, PUT, DELETE) are writes and are built in Week 6.
+
+Sample IDs to try: jobs `job_12345` to `job_12352`, applications `app_1001` to `app_1004`.
+
+## Testing the WebSocket (Endpoint 5)
+
+Swagger UI cannot open WebSockets. With the server running, open http://localhost:3000/docs, press F12, go to the Console tab and paste:
+
+```js
+const ws = new WebSocket('ws://localhost:3000/api/applications/app_1001/subscribe');
+ws.onmessage = (e) => console.log(e.data);
+```
+
+You will see the current status straight away, for example `{"applicationId":"app_1001","status":"pending"}`. A new message arrives whenever the status changes; `npm run verify` tests that push automatically.
+
+## Where the contract is enforced
+
+`src/db.js` holds sample rows shaped like real database rows: `_id`, snake_case names, decimals as strings, and internal columns. `src/mappers.js` is the mapping step that turns each row into the exact shape in `openapi.yaml`. Every response goes through it, so database names, string numbers and internal columns never leak into the API.
+
+```
+openapi.yaml               the contract
+CONTRACT_DEVIATIONS.md     every change made to the contract this week, and why
+VERIFICATION.md            results of npm run verify
+evidence/                  Swagger UI Try it out screenshots
+src/server.js              starts the server on port 3000
+src/app.js                 Express app, Swagger UI at /docs, routes
+src/routes/jobs.js         Endpoints 1, 2 and 3
+src/routes/applications.js Endpoint 4, and Endpoint 5 over plain HTTP
+src/realtime.js            Endpoint 5 WebSocket
+src/mappers.js             database row to contract shape
+src/db.js                  sample data
+scripts/verify-contract.js the contract checker
+```
