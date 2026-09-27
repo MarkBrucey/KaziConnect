@@ -1,4 +1,4 @@
-GET endpoints
+The following were corrected;
 
 Endpoint 1, GET /api/jobs Added a 400 response for when the required status query parameter is missing. The original marked it as required but did not say what happens when it is left out.
 
